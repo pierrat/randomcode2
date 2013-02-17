@@ -294,14 +294,61 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
     """
 
     def getAction(self, gameState):
-        """
-          Returns the expectimax action using self.depth and self.evaluationFunction
+      """
+      Returns the expectimax action using self.depth and self.evaluationFunction
 
-          All ghosts should be modeled as choosing uniformly at random from their
+      All ghosts should be modeled as choosing uniformly at random from their
           legal moves.
-        """
-        "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+      """
+      "*** YOUR CODE HERE ***"
+      return self.value(gameState, 0, self.depth-1)[1]
+
+    def value(self, gameState, agentIndex, depth):
+      #terminate when it is a leaf node, i.e. when the game ends
+      if gameState.isWin() or gameState.isLose():
+        return (self.evaluationFunction(gameState), 'stop')
+      #last ghost reached, time to decrease a depth
+      elif agentIndex == gameState.getNumAgents():
+        return self.value(gameState, 0, depth - 1)
+      elif agentIndex > 0: #agent is a ghost
+        return self.expvalue(gameState,agentIndex, depth)
+      elif agentIndex == 0: #agent is pacman
+        return self.maxvalue(gameState,agentIndex, depth)
+      else:
+        print "ERROR"
+        return 0
+
+    def maxvalue(self, gameState, agentIndex, depth):
+      v = float("-inf")
+      bestAction = 'stop'
+      legalMoves = gameState.getLegalActions(agentIndex) # Collect legal moves and successor states
+      for action in legalMoves:
+        score = self.value(gameState.generateSuccessor(agentIndex, action), agentIndex+1, depth)
+        if score > v:
+          v = score
+          bestAction = action
+      return (v,bestAction)
+
+    def expvalue(self, gameState, agentIndex, depth):
+      expvalue = 0
+      bestAction = 'stop'
+      #terminate when agent is the final ghost at depth 0
+      if agentIndex == (gameState.getNumAgents() - 1) and depth == 0:
+        legalMoves = gameState.getLegalActions(agentIndex) # Collect legal moves and successor states
+        numMoves=len(legalMoves)
+        for action in legalMoves:
+          score=(self.evaluationFunction(gameState.generateSuccessor(agentIndex, action)), action)[0]
+          expvalue+=(float(score))*((1./float(numMoves)))
+        return (expvalue,'L')
+      else: # keep on recursing
+        legalMoves = gameState.getLegalActions(agentIndex) # Collect legal moves and successor states
+        numMoves=len(legalMoves)
+        for action in legalMoves:
+          score = self.value(gameState.generateSuccessor(agentIndex, action), agentIndex+1, depth)[0]
+          if type(score)==tuple:
+            score=score[0]
+          expvalue+=(float(score))*((1./float(numMoves)))
+        return (expvalue,'stop')
 
 def betterEvaluationFunction(currentGameState):
     """
