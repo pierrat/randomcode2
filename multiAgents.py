@@ -69,7 +69,6 @@ class ReflexAgent(Agent):
         newGhostStates = successorGameState.getGhostStates()
         newScaredTimes = [ghostState.scaredTimer for ghostState in newGhostStates]
 
-        oldFood=currentGameState.getFood()
         capsules=successorGameState.getCapsules()
         numCapsules=len(capsules)
         if numCapsules>0:
@@ -346,7 +345,9 @@ def betterEvaluationFunction(currentGameState):
     Your extreme ghost-hunting, pellet-nabbing, food-gobbling, unstoppable
     evaluation function (question 5).
 
-    DESCRIPTION: <write something here so we know what you did>
+    DESCRIPTION: This evaluation function rewards for the number of food pellets left, penalizes for the manhattan distance to the closest ghost to Pacman, 
+    penalizes for the mazedistance to closest food, penalizes for the maximum manhattan distance to food, penalizes for the manhattan distance to the closest capsule, penalizes for the number of capsules,
+    and rewards for a higher game score.
   """
   "*** YOUR CODE HERE ***"
   successorGameState = currentGameState
@@ -354,8 +355,6 @@ def betterEvaluationFunction(currentGameState):
   newFood = successorGameState.getFood()
   newGhostStates = successorGameState.getGhostStates()
   newScaredTimes = [ghostState.scaredTimer for ghostState in newGhostStates]
-
-  oldFood=currentGameState.getFood()
   capsules=successorGameState.getCapsules()
   numCapsules=len(capsules)
   if numCapsules>0:
@@ -380,10 +379,17 @@ def betterEvaluationFunction(currentGameState):
     FdistMin=0
     FdistMax=0
 
-  if not scaredtimeSum==0:
-    evalue=(20000./float(foodCount+1))+(20./float(ClosestGdist+1))+(10./(float(FdistMin)+1))+(1./(float(FdistMax)+1))+(10./(float(CdistMin)+1))+(20./(numCapsules+1))
+  gameScore=successorGameState.getScore()
+  if gameScore>0:
+    gameScore=successorGameState.getScore()
   else:
-    evalue=(20000./float(foodCount+1))-(20./float(ClosestGdist+1))+(10./float((FdistMin)+1))+(1./(float(FdistMax)+1))+(10./float((CdistMin)+1))+(20./(numCapsules+1))
+    gameScore=0
+
+  if not scaredtimeSum==0:
+    evalue=(20000./float(foodCount+1))+(20./float(ClosestGdist+1))+(1./(float(FdistMin)+1))+(1./(float(FdistMax)+1))+(1./(float(CdistMin)+1))+(20./(numCapsules+1))-(float(10000)/(float(gameScore)+1))
+  else:
+    evalue=(20000./float(foodCount+1))-(1./float(ClosestGdist+1))+(1./float((FdistMin)+1))+(1./(float(FdistMax)+1))+(1./float((CdistMin)+1))+(20./(numCapsules+1))-(float(10000)/(float(gameScore)+1))
+
   return evalue
 
 # Abbreviation
