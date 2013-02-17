@@ -62,15 +62,61 @@ class ReflexAgent(Agent):
         Print out these variables to see what you're getting, then combine them
         to create a masterful evaluation function.
         """
-        # Useful information you can extract from a GameState (pacman.py)
+# Useful information you can extract from a GameState (pacman.py)
         successorGameState = currentGameState.generatePacmanSuccessor(action)
         newPos = successorGameState.getPacmanPosition()
         newFood = successorGameState.getFood()
         newGhostStates = successorGameState.getGhostStates()
         newScaredTimes = [ghostState.scaredTimer for ghostState in newGhostStates]
 
+        oldFood=currentGameState.getFood()
+        capsules=successorGameState.getCapsules()
+        numCapsules=len(capsules)
+        if numCapsules>0:
+          CdistMin=min([util.manhattanDistance(newPos,xy2) for xy2 in capsules])
+        else:
+          CdistMin=99999
+        if CdistMin==0:
+          CdistMin=10000
+
+        ghostPositions=[newGhostStates[i].getPosition() for i in range(len(newGhostStates))]
+        foodCount=newFood.count()
+        GdistsFromP=[util.manhattanDistance(newPos,xy2) for xy2 in ghostPositions]
+        ClosestGdist=min(GdistsFromP)
+        scaredtimeSum=sum(newScaredTimes)
+        foodPositions=newFood.asList()
+        FdistsFromP=[util.manhattanDistance(newPos,xy2) for xy2 in foodPositions]
+
+        if not len(FdistsFromP)==0:
+          FdistMin=min(FdistsFromP)
+          FdistMax=max(FdistsFromP)
+        else:
+          FdistMin=0
+          FdistMax=0
+
+        if not scaredtimeSum==0:
+          evalue=(20000./float(foodCount+1))+(20./float(ClosestGdist+1))+(10./(float(FdistMin)+1))+(1./(float(FdistMax)+1))+(10./(float(CdistMin)+1))+(20./(numCapsules+1))
+        else:
+          evalue=(20000./float(foodCount+1))-(20./float(ClosestGdist+1))+(10./float((FdistMin)+1))+(1./(float(FdistMax)+1))+(10./float((CdistMin)+1))+(20./(numCapsules+1))
+        #print 'HELLO'
+        #print action
+        #print evalue
+        #print (20000./float(foodCount+1))
+        #print (10./float(ClosestGdist+1))
+        #print (10./(float(CdistMin)+1))
+        #print (20./(float(FdistMin)+1))
+        #print (2000./(numCapsules+1))
+
+        return evalue
+      
+        #print newPos
+        #print newFood
+        #print newScaredTimes
+        #evalue=sum([1 for x in newFood if x==True])
+
+
         "*** YOUR CODE HERE ***"
-        return successorGameState.getScore()
+        #return successorGameState.getScore()
 
 def scoreEvaluationFunction(currentGameState):
     """
