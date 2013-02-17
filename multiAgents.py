@@ -125,34 +125,12 @@ class MinimaxAgent(MultiAgentSearchAgent):
           Returns the total number of agents in the game
       """
       "*** YOUR CODE HERE ***"
-      v = float("-inf")
-      bestAction = 'stop'
-      legalMoves = gameState.getLegalActions(0) # Collect legal moves and successor states
-      for action in legalMoves:
-        score = self.value(gameState.generateSuccessor(0, action), 1, self.depth-1)
-        if score > v:
-          v = score
-          bestAction = action
-      return bestAction
-
-      chosenIndex = bestIndices[0] # Pick randomly among the best
-
-      "Add more of your code here if you want to"
-
-      return legalMoves[chosenIndex]    
+      return self.value(gameState, 0, self.depth-1)[1]
 
     def value(self, gameState, agentIndex, depth):
       #terminate when it is a leaf node, i.e. when the game ends
       if gameState.isWin() or gameState.isLose():
-        return self.evaluationFunction(gameState)
-      #terminate when agent is the final ghost at depth 0
-      elif agentIndex == (gameState.getNumAgents() - 1) and depth == 0:
-        legalMoves = gameState.getLegalActions(agentIndex) # Collect legal moves and successor states
-        scores = [self.evaluationFunction(gameState.generateSuccessor(agentIndex, action)) for action in legalMoves] # Choose one of the best actions
-        bestScore = min(scores)
-        #bestIndices = [index for index in range(len(scores)) if scores[index] == bestScore]
-        #chosenIndex = bestIndices[0] #choose the leftmost node
-        return bestScore
+        return (self.evaluationFunction(gameState), 'stop')
       #last ghost reached, time to decrease a depth
       elif agentIndex == gameState.getNumAgents():
         return self.value(gameState, 0, depth - 1)
@@ -166,21 +144,35 @@ class MinimaxAgent(MultiAgentSearchAgent):
 
     def maxvalue(self, gameState, agentIndex, depth):
       v = float("-inf")
+      bestAction = 'stop'
       legalMoves = gameState.getLegalActions(agentIndex) # Collect legal moves and successor states
       for action in legalMoves:
         score = self.value(gameState.generateSuccessor(agentIndex, action), agentIndex+1, depth)
-        if score > v:
-          v = score
-      return v  
+        if score[0] > v:
+          v = score[0]
+          bestAction = action
+      return (v, bestAction)
+
     def minvalue(self, gameState, agentIndex, depth):
       v = float("inf")
-      legalMoves = gameState.getLegalActions(agentIndex) # Collect legal moves and successor states
-      for action in legalMoves:
-        score = self.value(gameState.generateSuccessor(agentIndex, action), agentIndex+1, depth)
-        if score < v:
-          v = score
-      return v  
-
+      bestAction = 'stop'
+       #terminate when agent is the final ghost at depth 0
+      if agentIndex == (gameState.getNumAgents() - 1) and depth == 0:
+        legalMoves = gameState.getLegalActions(agentIndex) # Collect legal moves and successor states
+        for action in legalMoves:
+          score = (self.evaluationFunction(gameState.generateSuccessor(agentIndex, action)), action)
+          if score[0] < v:
+            bestAction = action
+            v = score[0]
+        return (v, bestAction)
+      else: # keep on recursing
+        legalMoves = gameState.getLegalActions(agentIndex) # Collect legal moves and successor states
+        for action in legalMoves:
+          score = self.value(gameState.generateSuccessor(agentIndex, action), agentIndex+1, depth)
+          if score[0] < v:
+            v = score[0]
+            bestAction = action
+        return (v, bestAction)  
 
 class AlphaBetaAgent(MultiAgentSearchAgent):
     """
