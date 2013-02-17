@@ -10,7 +10,7 @@
 
 from util import manhattanDistance
 from game import Directions
-import random, util
+import random, util, search, searchAgents
 
 from game import Agent
 
@@ -73,7 +73,9 @@ class ReflexAgent(Agent):
         capsules=successorGameState.getCapsules()
         numCapsules=len(capsules)
         if numCapsules>0:
-          CdistMin=min([util.manhattanDistance(newPos,xy2) for xy2 in capsules])
+          #CdistMin=min([util.manhattanDistance(newPos,xy2) for xy2 in capsules])
+          CdistMin=min([searchAgents.mazeDistance(newPos,xy2,successorGameState) for xy2 in capsules])
+          print CdistMin
         else:
           CdistMin=99999
         if CdistMin==0:
@@ -86,9 +88,8 @@ class ReflexAgent(Agent):
         scaredtimeSum=sum(newScaredTimes)
         foodPositions=newFood.asList()
         FdistsFromP=[util.manhattanDistance(newPos,xy2) for xy2 in foodPositions]
-
         if not len(FdistsFromP)==0:
-          FdistMin=min(FdistsFromP)
+          FdistMin=searchAgents.closestFoodDistance(successorGameState)
           FdistMax=max(FdistsFromP)
         else:
           FdistMin=0
@@ -98,21 +99,7 @@ class ReflexAgent(Agent):
           evalue=(20000./float(foodCount+1))+(20./float(ClosestGdist+1))+(10./(float(FdistMin)+1))+(1./(float(FdistMax)+1))+(10./(float(CdistMin)+1))+(20./(numCapsules+1))
         else:
           evalue=(20000./float(foodCount+1))-(20./float(ClosestGdist+1))+(10./float((FdistMin)+1))+(1./(float(FdistMax)+1))+(10./float((CdistMin)+1))+(20./(numCapsules+1))
-        #print 'HELLO'
-        #print action
-        #print evalue
-        #print (20000./float(foodCount+1))
-        #print (10./float(ClosestGdist+1))
-        #print (10./(float(CdistMin)+1))
-        #print (20./(float(FdistMin)+1))
-        #print (2000./(numCapsules+1))
-
         return evalue
-      
-        #print newPos
-        #print newFood
-        #print newScaredTimes
-        #evalue=sum([1 for x in newFood if x==True])
 
 
         "*** YOUR CODE HERE ***"
@@ -294,24 +281,59 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
     """
 
     def getAction(self, gameState):
-        """
-          Returns the expectimax action using self.depth and self.evaluationFunction
+      """
+        Returns the expectimax action using self.depth and self.evaluationFunction
 
-          All ghosts should be modeled as choosing uniformly at random from their
-          legal moves.
-        """
-        "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        All ghosts should be modeled as choosing uniformly at random from their
+        legal moves.
+      """
+      "*** YOUR CODE HERE ***"
 
 def betterEvaluationFunction(currentGameState):
-    """
-      Your extreme ghost-hunting, pellet-nabbing, food-gobbling, unstoppable
-      evaluation function (question 5).
+  """
+    Your extreme ghost-hunting, pellet-nabbing, food-gobbling, unstoppable
+    evaluation function (question 5).
 
-      DESCRIPTION: <write something here so we know what you did>
-    """
-    "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    DESCRIPTION: <write something here so we know what you did>
+  """
+  "*** YOUR CODE HERE ***"
+  successorGameState = currentGameState
+  newPos = successorGameState.getPacmanPosition()
+  newFood = successorGameState.getFood()
+  newGhostStates = successorGameState.getGhostStates()
+  newScaredTimes = [ghostState.scaredTimer for ghostState in newGhostStates]
+
+  oldFood=currentGameState.getFood()
+  capsules=successorGameState.getCapsules()
+  numCapsules=len(capsules)
+  if numCapsules>0:
+    #CdistMin=min([util.manhattanDistance(newPos,xy2) for xy2 in capsules])
+    CdistMin=min([searchAgents.mazeDistance(newPos,xy2,successorGameState) for xy2 in capsules])
+    print CdistMin
+  else:
+    CdistMin=99999
+  if CdistMin==0:
+    CdistMin=10000
+
+  ghostPositions=[newGhostStates[i].getPosition() for i in range(len(newGhostStates))]
+  foodCount=newFood.count()
+  GdistsFromP=[util.manhattanDistance(newPos,xy2) for xy2 in ghostPositions]
+  ClosestGdist=min(GdistsFromP)
+  scaredtimeSum=sum(newScaredTimes)
+  foodPositions=newFood.asList()
+  FdistsFromP=[util.manhattanDistance(newPos,xy2) for xy2 in foodPositions]
+  if not len(FdistsFromP)==0:
+    FdistMin=searchAgents.closestFoodDistance(successorGameState)
+    FdistMax=max(FdistsFromP)
+  else:
+    FdistMin=0
+    FdistMax=0
+
+  if not scaredtimeSum==0:
+    evalue=(20000./float(foodCount+1))+(20./float(ClosestGdist+1))+(10./(float(FdistMin)+1))+(1./(float(FdistMax)+1))+(10./(float(CdistMin)+1))+(20./(numCapsules+1))
+  else:
+    evalue=(20000./float(foodCount+1))-(20./float(ClosestGdist+1))+(10./float((FdistMin)+1))+(1./(float(FdistMax)+1))+(10./float((CdistMin)+1))+(20./(numCapsules+1))
+  return evalue
 
 # Abbreviation
 better = betterEvaluationFunction
