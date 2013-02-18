@@ -413,24 +413,65 @@ class ContestAgent(MultiAgentSearchAgent):
     """
 
     def getAction(self, gameState):
-        """
-          Returns an action.  You can use any method you want and search to any depth you want.
-          Just remember that the mini-contest is timed, so you have to trade off speed and computation.
+      """
+        Returns an action.  You can use any method you want and search to any depth you want.
+        Just remember that the mini-contest is timed, so you have to trade off speed and computation.
 
-          Ghosts don't behave randomly anymore, but they aren't perfect either -- they'll usually
-          just make a beeline straight towards Pacman (or away from him if they're scared!)
-        """
-        "*** YOUR CODE HERE ***"
-        """
-      Your expectimax agent (question 4)
-    """
-    """
-    Returns the expectimax action using self.depth and self.evaluationFunction
+        Ghosts don't behave randomly anymore, but they aren't perfect either -- they'll usually
+        just make a beeline straight towards Pacman (or away from him if they're scared!)
+      """
+      "*** YOUR CODE HERE ***"
+      return self.value(gameState, 0, self.depth-1)[1]
 
-    All ghosts should be modeled as choosing uniformly at random from their
-          legal moves.
-    """
-    "*** YOUR CODE HERE ***"
+    def value(self, gameState, agentIndex, depth):
+      #terminate when it is a leaf node, i.e. when the game ends
+      if gameState.isWin() or gameState.isLose():
+        return (betterEvaluationFunction(gameState), 'stop')
+      #last ghost reached, time to decrease a depth
+      elif agentIndex == gameState.getNumAgents():
+        return self.value(gameState, 0, depth - 1)
+      elif agentIndex > 0: #agent is a ghost
+        return self.expvalue(gameState,agentIndex, depth)
+      elif agentIndex == 0: #agent is pacman
+        return self.maxvalue(gameState,agentIndex, depth)
+      else:
+        print "ERROR"
+        return 0
+
+    def maxvalue(self, gameState, agentIndex, depth):
+      v = float("-inf")
+      bestAction = 'stop'
+      legalMoves = gameState.getLegalActions(agentIndex) # Collect legal moves and successor states
+      for action in legalMoves:
+        score = self.value(gameState.generateSuccessor(agentIndex, action), agentIndex+1, depth)
+        if score > v:
+          v = score
+          bestAction = action
+      return (v,bestAction)
+
+    def expvalue(self, gameState, agentIndex, depth):
+      expvalue = 0
+      bestAction = 'stop'
+      #terminate when agent is the final ghost at depth 0
+      if agentIndex == (gameState.getNumAgents() - 1) and depth == 0:
+        legalMoves = gameState.getLegalActions(agentIndex) # Collect legal moves and successor states
+        numMoves=len(legalMoves)
+        for action in legalMoves:
+          score=(betterEvaluationFunction(gameState.generateSuccessor(agentIndex, action)), action)[0]
+          expvalue+=(float(score))*((1./float(numMoves)))
+        return (expvalue,'L')
+      else: # keep on recursing
+        legalMoves = gameState.getLegalActions(agentIndex) # Collect legal moves and successor states
+        numMoves=len(legalMoves)
+        for action in legalMoves:
+          score = self.value(gameState.generateSuccessor(agentIndex, action), agentIndex+1, depth)[0]
+          if type(score)==tuple:
+            score=score[0]
+          expvalue+=(float(score))*((1./float(numMoves)))
+        return (expvalue,'stop')
+
+
+
 
 class SearchProblem:
     """
@@ -811,12 +852,6 @@ class PositionSearchProblem(SearchProblem):
         isGoal = state == self.goal
 
         # For display purposes only
-        if isGoal:
-            self._visitedlist.append(state)
-            import __main__
-            if '_display' in dir(__main__):
-                if 'drawExpandedCells' in dir(__main__._display): #@UndefinedVariable
-                    __main__._display.drawExpandedCells(self._visitedlist) #@UndefinedVariable
 
         return isGoal
 
