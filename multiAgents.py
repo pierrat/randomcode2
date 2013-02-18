@@ -355,16 +355,23 @@ def betterEvaluationFunction(currentGameState):
   "*** YOUR CODE HERE ***"
   from game import Agent
 
-  successorGameState = currentGameState
-  newPos = successorGameState.getPacmanPosition()
-  newFood = successorGameState.getFood()
-  newGhostStates = successorGameState.getGhostStates()
+  currentGameState = currentGameState
+  newPos = currentGameState.getPacmanPosition()
+  newFood = currentGameState.getFood()
+  newGhostStates = currentGameState.getGhostStates()
   newScaredTimes = [ghostState.scaredTimer for ghostState in newGhostStates]
-  capsules=successorGameState.getCapsules()
+  capsules=currentGameState.getCapsules()
   numCapsules=len(capsules)
+
+  #calculate the mazeDistance when the Pellet is close 
   if numCapsules>0:
-    #CdistMin=min([util.manhattanDistance(newPos,xy2) for xy2 in capsules])
-    CdistMin=min([mazeDistance(newPos,xy2,successorGameState) for xy2 in capsules])
+    Cdist=[]
+    for xy2 in capsules:
+      dist = util.manhattanDistance(newPos,xy2)
+      if dist > 3:
+        dist = mazeDistance(newPos,xy2,currentGameState)
+      Cdist.append(dist)
+    CdistMin=min(Cdist)
   else:
     CdistMin=99999
   if CdistMin==0:
@@ -373,32 +380,49 @@ def betterEvaluationFunction(currentGameState):
   ghostPositions=[newGhostStates[i].getPosition() for i in range(len(newGhostStates))]
   foodCount=newFood.count()
   GdistsFromP=[util.manhattanDistance(newPos,xy2) for xy2 in ghostPositions]
+
+  #only calculates the mazeDistance of Ghosts when it is a short distance, for speed
+  i = 0
+  for dist in GdistsFromP:
+    if dist < 3:
+      GdistsFromP[i] = mazeDistance(newPos,(int(ghostPositions[i][0]), int(ghostPositions[i][1])),currentGameState)
+    i = i + 1
+  #GdistsFromP=[mazeDistance(newPos,(int(x2), int(y2)),currentGameState) for (x2,y2) in ghostPositions]
+
   ClosestGdist=min(GdistsFromP)
   scaredtimeSum=sum(newScaredTimes)
   foodPositions=newFood.asList()
   FdistsFromP=[util.manhattanDistance(newPos,xy2) for xy2 in foodPositions]
   if not len(FdistsFromP)==0:
-    #agent=Agent()
-    #searchAgent=SearchAgent(agent)
-    #CDagent=ClosestDotSearchAgent(searchAgent)
-    FdistMin=closestFoodDistance(successorGameState)
-    #FdistMin=min(FdistsFromP)
+    FdistMin=closestFoodDistance(currentGameState)
     FdistMax=max(FdistsFromP)
   else:
     FdistMin=0
     FdistMax=0
 
-  gameScore=successorGameState.getScore()
+  gameScore=currentGameState.getScore()
   if gameScore>0:
-    gameScore=successorGameState.getScore()
+    gameScore=currentGameState.getScore()
   else:
     gameScore=0
 
-  if not scaredtimeSum==0:
-    evalue=(20000./float(foodCount+1))+(20./float(ClosestGdist+1))+(1./(float(FdistMin)+1))+(1./(float(FdistMax)+1))+(1./(float(CdistMin)+1))+(20./(numCapsules+1))-(float(10000)/(float(gameScore)+1))
+  evalue = 0
+  i = 0
+  #go through all the ghosts and see if they are scared or not
+  while i < len(newScaredTimes):
+    if newScaredTimes[i] == 0: #ghost in question is not scared
+      #if GdistsFromP[i] < 3:
+      if min(GdistsFromP) == GdistsFromP[i]:
+        evalue -= 1./float(GdistsFromP[i]+1)
+    else:
+       evalue += 20./float(GdistsFromP[i]+1) #ghost in question is scared
+       evalue += float(gameScore)*5
+    i = i + 1
+  #if there are scared ghosts, then don't waste pellets
+  if scaredtimeSum > 0:
+    evalue+=(20000./float(foodCount+1))+(1./float((FdistMin)+1))-(2000./(numCapsules+1))+(1./(float(FdistMax)+1))+(1./float((CdistMin)+1))#-(float(10000)/(float(gameScore)+1))
   else:
-    evalue=(20000./float(foodCount+1))-(1./float(ClosestGdist+1))+(1./float((FdistMin)+1))+(1./(float(FdistMax)+1))+(1./float((CdistMin)+1))+(20./(numCapsules+1))-(float(10000)/(float(gameScore)+1))
-
+    evalue+=(20000./float(foodCount+1))+(1./float((FdistMin)+1))+(20./(numCapsules+1))+(1./(float(FdistMax)+1))+(1./float((CdistMin)+1))#-(float(10000)/(float(gameScore)+1))
   return evalue
 
 
@@ -421,7 +445,7 @@ class ContestAgent(MultiAgentSearchAgent):
         just make a beeline straight towards Pacman (or away from him if they're scared!)
       """
       "*** YOUR CODE HERE ***"
-      return self.value(gameState, 0, self.depth-1)[1]
+      return self.value(gameState, 0, 1)[1]
 
     def value(self, gameState, agentIndex, depth):
       #terminate when it is a leaf node, i.e. when the game ends
@@ -1252,17 +1276,6 @@ class AnyFoodSearchProblem(PositionSearchProblem):
         x,y = state
         isGoal=self.food[x][y]
 
-        '''
-        foodTuples=self.food.asList()
-        dists=util.Counter()
-        for food in foodTuples:
-            distance=util.manhattanDistance(state,food)
-            dists[food]=distance
-        shortestDistance=min(dists.values())
-        closestFood=dists[shortestDistance]
-        isGoal=state==closestFood
-        '''
-
         return isGoal
 
         #util.raiseNotDefined()
@@ -1333,9 +1346,6 @@ def closestFoodDistance(gameState):
     """
     Returns the the distance to the closest food
     """
-    startPosition = gameState.getPacmanPosition()
-    food = gameState.getFood()
-    walls = gameState.getWalls()
     problem = AnyFoodSearchProblem(gameState)
     path = breadthFirstSearch(problem)
     return len(path)
