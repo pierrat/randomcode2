@@ -10,8 +10,7 @@
 
 from util import manhattanDistance
 from game import Directions
-import random, util, search, searchAgents
-
+import random, util
 from game import Agent
 
 class ReflexAgent(Agent):
@@ -72,8 +71,8 @@ class ReflexAgent(Agent):
         capsules=successorGameState.getCapsules()
         numCapsules=len(capsules)
         if numCapsules>0:
-          #CdistMin=min([util.manhattanDistance(newPos,xy2) for xy2 in capsules])
-          CdistMin=min([searchAgents.mazeDistance(newPos,xy2,successorGameState) for xy2 in capsules])
+          CdistMin=min([util.manhattanDistance(newPos,xy2) for xy2 in capsules])
+          #CdistMin=min([searchAgents.mazeDistance(newPos,xy2,successorGameState) for xy2 in capsules])
         else:
           CdistMin=99999
         if CdistMin==0:
@@ -87,7 +86,8 @@ class ReflexAgent(Agent):
         foodPositions=newFood.asList()
         FdistsFromP=[util.manhattanDistance(newPos,xy2) for xy2 in foodPositions]
         if not len(FdistsFromP)==0:
-          FdistMin=searchAgents.closestFoodDistance(successorGameState)
+          FdistMin=min(FdistsFromP)
+          #FdistMin=searchAgents.closestFoodDistance(successorGameState)
           FdistMax=max(FdistsFromP)
         else:
           FdistMin=0
@@ -358,8 +358,8 @@ def betterEvaluationFunction(currentGameState):
   capsules=successorGameState.getCapsules()
   numCapsules=len(capsules)
   if numCapsules>0:
-    #CdistMin=min([util.manhattanDistance(newPos,xy2) for xy2 in capsules])
-    CdistMin=min([searchAgents.mazeDistance(newPos,xy2,successorGameState) for xy2 in capsules])
+    CdistMin=min([util.manhattanDistance(newPos,xy2) for xy2 in capsules])
+    #CdistMin=min([searchAgents.mazeDistance(newPos,xy2,successorGameState) for xy2 in capsules])
   else:
     CdistMin=99999
   if CdistMin==0:
@@ -373,7 +373,8 @@ def betterEvaluationFunction(currentGameState):
   foodPositions=newFood.asList()
   FdistsFromP=[util.manhattanDistance(newPos,xy2) for xy2 in foodPositions]
   if not len(FdistsFromP)==0:
-    FdistMin=searchAgents.closestFoodDistance(successorGameState)
+    #FdistMin=searchAgents.closestFoodDistance(successorGameState)
+    FdistMin=min(FdistsFromP)
     FdistMax=max(FdistsFromP)
   else:
     FdistMin=0
@@ -388,7 +389,7 @@ def betterEvaluationFunction(currentGameState):
   if not scaredtimeSum==0:
     evalue=(20000./float(foodCount+1))+(20./float(ClosestGdist+1))+(1./(float(FdistMin)+1))+(1./(float(FdistMax)+1))+(1./(float(CdistMin)+1))+(20./(numCapsules+1))-(float(10000)/(float(gameScore)+1))
   else:
-    evalue=(20000./float(foodCount+1))-(1./float(ClosestGdist+1))+(1./float((FdistMin)+1))+(1./(float(FdistMax)+1))+(1./float((CdistMin)+1))+(20./(numCapsules+1))-(float(10000)/(float(gameScore)+1))
+    evalue=(20000./float(foodCount+1))-(30./float(ClosestGdist+1))+(1./float((FdistMin)+1))+(1./(float(FdistMax)+1))+(1./float((CdistMin)+1))+(20./(numCapsules+1))-(float(10000)/(float(gameScore)+1))
 
   return evalue
 
