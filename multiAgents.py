@@ -348,17 +348,17 @@ def betterEvaluationFunction(currentGameState):
     Your extreme ghost-hunting, pellet-nabbing, food-gobbling, unstoppable
     evaluation function (question 5).
 
-    DESCRIPTION: This evaluation function rewards for the number of food pellets left, penalizes for the manhattan distance to the closest ghost to Pacman, 
+    DESCRIPTION: This evaluation function rewards for the number of food pellets left, penalizes for the distance to the not scared ghosts to Pacman, 
     penalizes for the mazedistance to closest food, penalizes for the maximum manhattan distance to food, penalizes for the manhattan distance to the closest capsule, penalizes for the number of capsules,
-    and rewards for a higher game score.
+    and rewards for a higher game score. It also uses a small random variation to simulate non-optimal play
   """
   "*** YOUR CODE HERE ***"
   from game import Agent
 
-  currentGameState = currentGameState
   newPos = currentGameState.getPacmanPosition()
   newFood = currentGameState.getFood()
   newGhostStates = currentGameState.getGhostStates()
+  #print newGhostStates[0].configuration
   newScaredTimes = [ghostState.scaredTimer for ghostState in newGhostStates]
   capsules=currentGameState.getCapsules()
   numCapsules=len(capsules)
@@ -368,8 +368,8 @@ def betterEvaluationFunction(currentGameState):
     Cdist=[]
     for xy2 in capsules:
       dist = util.manhattanDistance(newPos,xy2)
-      #if dist > 3:
-        #dist = mazeDistance(newPos,xy2,currentGameState)
+      if dist < 3:
+        dist = mazeDistance(newPos,xy2,currentGameState)
       Cdist.append(dist)
     CdistMin=min(Cdist)
   else:
@@ -388,7 +388,7 @@ def betterEvaluationFunction(currentGameState):
     if dist < 4:
       GdistsFromP[i] = mazeDistance(newPos,(int(ghostPositions[i][0]), int(ghostPositions[i][1])),currentGameState)
     i = i + 1
-  #GdistsFromP=[mazeDistance(newPos,(int(x2), int(y2)),currentGameState) for (x2,y2) in ghostPositions]
+ # GdistsFromP=[mazeDistance(newPos,(int(x2), int(y2)),currentGameState) for (x2,y2) in ghostPositions]
 
   ClosestGdist=min(GdistsFromP)
   scaredtimeSum=sum(newScaredTimes)
@@ -402,29 +402,49 @@ def betterEvaluationFunction(currentGameState):
     FdistMax=0
 
   gameScore=currentGameState.getScore()
+  """
   if gameScore>0:
     gameScore=currentGameState.getScore()
   else:
     gameScore=0
-
+  """
   evalue = 0
   i = 0
+
+  #if there are scared ghosts, then don't waste pellets
+  if scaredtimeSum > 0:
+    evalue+=(2000./float(foodCount+1))+(1./float((FdistMin)+1))+float(numCapsules*2000)+(10./(float(FdistMax)+1))#+(1./float((CdistMin)+1))-(float(100000)/(float(gameScore)+1))
+    evalue+=100
+  else:
+    evalue-=100
+    evalue+=(2000./float(foodCount+1))+(1./float((FdistMin)+1))-float(numCapsules*50)+(10./(float(FdistMax)+1))+(10./float((CdistMin)+1))#-(float(100000)/(float(gameScore)+1))
+  evalue += float(gameScore)*20
+
+  #use a random number generator to "simulate" non-optimal play
+  evalue += float(random.randint(0,9))/float(10)
+
   #go through all the ghosts and see if they are scared or not
-  len(newScaredTimes)
   while i < len(newScaredTimes):
     if newScaredTimes[i] == 0: #ghost in question is not scared
       #if GdistsFromP[i] < 3:
-      if min(GdistsFromP) == GdistsFromP[i]:
+      #the ghost just respawned
+      if newGhostStates[i].configuration == newGhostStates[i].start:
+        evalue += 20
+      else:
         evalue -= 1./float(GdistsFromP[i]+1)
+        evalue -= 20
+        """
+        if scaredtimeSum > 0:
+           if GdistsFromP[i] < 2:
+            evalue -= 1./float(GdistsFromP[i]+1)       
+        else:
+          if min(GdistsFromP) == GdistsFromP[i]:
+            evalue -= 1./float(GdistsFromP[i]+1)
+        """
     else:
-       evalue += 20./float(GdistsFromP[i]+1) #ghost in question is scared
-       evalue += float(gameScore)*5
+       evalue += 10./float(GdistsFromP[i]+1) #ghost in question is scared, so chase it
+       #evalue += float(gameScore)*200
     i = i + 1
-  #if there are scared ghosts, then don't waste pellets
-  if scaredtimeSum > 0:
-    evalue+=(20000./float(foodCount+1))+(1./float((FdistMin)+1))-(2000./(numCapsules+1))+(1./(float(FdistMax)+1))+(1./float((CdistMin)+1))-(float(100000)/(float(gameScore)+1))
-  else:
-    evalue+=(20000./float(foodCount+1))+(1./float((FdistMin)+1))+(20./(numCapsules+1))+(1./(float(FdistMax)+1))+(1./float((CdistMin)+1))-(float(100000)/(float(gameScore)+1))
   return evalue
 
 
@@ -447,54 +467,63 @@ class ContestAgent(MultiAgentSearchAgent):
         just make a beeline straight towards Pacman (or away from him if they're scared!)
       """
       "*** YOUR CODE HERE ***"
-      return self.value(gameState, 0, 1)[1]
+      return self.value(gameState, 0, float("-inf"), float("inf"), 2)[1]
 
-    def value(self, gameState, agentIndex, depth):
+    def value(self, gameState, agentIndex, alpha, beta, depth):
       #terminate when it is a leaf node, i.e. when the game ends
       if gameState.isWin() or gameState.isLose():
-        return (betterEvaluationFunction(gameState), 'stop')
+        return (self.evaluationFunction(gameState), 'stop')
       #last ghost reached, time to decrease a depth
       elif agentIndex == gameState.getNumAgents():
-        return self.value(gameState, 0, depth - 1)
+        return self.value(gameState, 0, alpha, beta, depth - 1)
       elif agentIndex > 0: #agent is a ghost
-        return self.expvalue(gameState,agentIndex, depth)
+        return self.minvalue(gameState,agentIndex, alpha, beta, depth)
       elif agentIndex == 0: #agent is pacman
-        return self.maxvalue(gameState,agentIndex, depth)
+        return self.maxvalue(gameState,agentIndex, alpha, beta, depth)
       else:
         print "ERROR"
         return 0
 
-    def maxvalue(self, gameState, agentIndex, depth):
+    def maxvalue(self, gameState, agentIndex, alpha, beta, depth):
       v = float("-inf")
       bestAction = 'stop'
       legalMoves = gameState.getLegalActions(agentIndex) # Collect legal moves and successor states
       for action in legalMoves:
-        score = self.value(gameState.generateSuccessor(agentIndex, action), agentIndex+1, depth)
-        if score > v:
-          v = score
+        score = self.value(gameState.generateSuccessor(agentIndex, action), agentIndex+1, alpha, beta, depth)
+        if score[0] > v:
+          v = score[0]
           bestAction = action
-      return (v,bestAction)
+          if v > beta:
+            return (v, bestAction)
+          alpha = max(v,alpha)
+      return (v, bestAction)
 
-    def expvalue(self, gameState, agentIndex, depth):
-      expvalue = 0
+    def minvalue(self, gameState, agentIndex, alpha, beta, depth):
+      v = float("inf")
       bestAction = 'stop'
-      #terminate when agent is the final ghost at depth 0
+       #terminate when agent is the final ghost at depth 0
       if agentIndex == (gameState.getNumAgents() - 1) and depth == 0:
         legalMoves = gameState.getLegalActions(agentIndex) # Collect legal moves and successor states
-        numMoves=len(legalMoves)
         for action in legalMoves:
-          score=(betterEvaluationFunction(gameState.generateSuccessor(agentIndex, action)), action)[0]
-          expvalue+=(float(score))*((1./float(numMoves)))
-        return (expvalue,'L')
+          score = (betterEvaluationFunction(gameState.generateSuccessor(agentIndex, action)), action)
+          if score[0] < v:
+            bestAction = action
+            v = score[0]
+            if v < alpha:
+              return (v, bestAction)
+            beta = min(beta, v)
+        return (v, bestAction)
       else: # keep on recursing
         legalMoves = gameState.getLegalActions(agentIndex) # Collect legal moves and successor states
-        numMoves=len(legalMoves)
         for action in legalMoves:
-          score = self.value(gameState.generateSuccessor(agentIndex, action), agentIndex+1, depth)[0]
-          if type(score)==tuple:
-            score=score[0]
-          expvalue+=(float(score))*((1./float(numMoves)))
-        return (expvalue,'stop')
+          score = self.value(gameState.generateSuccessor(agentIndex, action), agentIndex+1, alpha, beta, depth)
+          if score[0] < v:
+            v = score[0]
+            bestAction = action
+            if v < alpha:
+              return (v, bestAction)
+            beta = min(beta, v)
+        return (v, bestAction) 
 
 
 
