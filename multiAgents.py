@@ -368,8 +368,8 @@ def betterEvaluationFunction(currentGameState):
     Cdist=[]
     for xy2 in capsules:
       dist = util.manhattanDistance(newPos,xy2)
-      if dist > 3:
-        dist = mazeDistance(newPos,xy2,currentGameState)
+      #if dist > 3:
+        #dist = mazeDistance(newPos,xy2,currentGameState)
       Cdist.append(dist)
     CdistMin=min(Cdist)
   else:
@@ -382,9 +382,10 @@ def betterEvaluationFunction(currentGameState):
   GdistsFromP=[util.manhattanDistance(newPos,xy2) for xy2 in ghostPositions]
 
   #only calculates the mazeDistance of Ghosts when it is a short distance, for speed
+
   i = 0
   for dist in GdistsFromP:
-    if dist < 3:
+    if dist < 4:
       GdistsFromP[i] = mazeDistance(newPos,(int(ghostPositions[i][0]), int(ghostPositions[i][1])),currentGameState)
     i = i + 1
   #GdistsFromP=[mazeDistance(newPos,(int(x2), int(y2)),currentGameState) for (x2,y2) in ghostPositions]
@@ -409,6 +410,7 @@ def betterEvaluationFunction(currentGameState):
   evalue = 0
   i = 0
   #go through all the ghosts and see if they are scared or not
+  len(newScaredTimes)
   while i < len(newScaredTimes):
     if newScaredTimes[i] == 0: #ghost in question is not scared
       #if GdistsFromP[i] < 3:
@@ -420,9 +422,9 @@ def betterEvaluationFunction(currentGameState):
     i = i + 1
   #if there are scared ghosts, then don't waste pellets
   if scaredtimeSum > 0:
-    evalue+=(20000./float(foodCount+1))+(1./float((FdistMin)+1))-(2000./(numCapsules+1))+(1./(float(FdistMax)+1))+(1./float((CdistMin)+1))#-(float(10000)/(float(gameScore)+1))
+    evalue+=(20000./float(foodCount+1))+(1./float((FdistMin)+1))-(2000./(numCapsules+1))+(1./(float(FdistMax)+1))+(1./float((CdistMin)+1))-(float(100000)/(float(gameScore)+1))
   else:
-    evalue+=(20000./float(foodCount+1))+(1./float((FdistMin)+1))+(20./(numCapsules+1))+(1./(float(FdistMax)+1))+(1./float((CdistMin)+1))#-(float(10000)/(float(gameScore)+1))
+    evalue+=(20000./float(foodCount+1))+(1./float((FdistMin)+1))+(20./(numCapsules+1))+(1./(float(FdistMax)+1))+(1./float((CdistMin)+1))-(float(100000)/(float(gameScore)+1))
   return evalue
 
 
